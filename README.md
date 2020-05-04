@@ -34,8 +34,8 @@ At C:\Windows\system32\WindowsPowerShell\v1.0\Modules\NetTCPIP\Test-NetConnectio
 Resolve-DnsName : Cannot validate argument on parameter 'Name'. The argument is null or empty. Provide an argument that is not null or empty, and then try 
 the command again.
 At C:\Windows\system32\WindowsPowerShell\v1.0\Modules\NetTCPIP\Test-NetConnection.psm1:313 char:74
- ... ctionResult.DNSOnlyRecords = @( Resolve-DnsName $ComputerName -DnsOnl ...
-                                                     ~~~~~~~~~~~~~
++ ... ctionResult.DNSOnlyRecords = @( Resolve-DnsName $ComputerName -DnsOnl ...
++                                                     ~~~~~~~~~~~~~
     + CategoryInfo          : InvalidData: (:) [Resolve-DnsName], ParameterBindingValidationException
     + FullyQualifiedErrorId : ParameterArgumentValidationError,Microsoft.DnsClient.Commands.ResolveDnsName
  
