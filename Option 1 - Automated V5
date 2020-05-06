@@ -1,0 +1,26 @@
+$inputFile = "database.csv"
+$exportFile = "export $(get-date -Format yyyy-MM-dd_HHmm).csv"
+
+$ipAddresses = Import-CSV $inputFile 
+
+$report = foreach($ip in $ipAddresses)
+{
+
+    if((Test-NetConnection -ComputerName $ip.IP).PingSucceeded -eq $false)
+    {
+        Start-Sleep 10
+            if((Test-NetConnection -ComputerName $ip.IP).PingSucceeded -eq $false)
+            {
+
+        New-Object PsObject -Property @{
+            Device = $ip.Device
+            IP = $ip.IP
+            Location = $ip.Location
+            }
+        }
+    }
+
+}
+
+
+$report | Export-Csv -Path $exportFile -NoClobber -NoTypeInformation
