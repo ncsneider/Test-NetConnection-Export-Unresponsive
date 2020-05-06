@@ -1,0 +1,26 @@
+$inputFile = "C:\PS Testing\Online IP Database.csv"
+$exportFile = "C:\PS Testing\export_1 5.6.20 0915.csv"
+
+$ipAddresses = Import-CSV $inputFile 
+
+$report = foreach($ip in $ipAddresses)
+{
+
+    if((Test-NetConnection -ComputerName $ip.IP).PingSucceeded -eq $false)
+    {
+        Start-Sleep 10
+            if((Test-NetConnection -ComputerName $ip.IP).PingSucceeded -eq $false)
+            {
+
+        New-Object PsObject -Property @{
+            Device = $ip.Device
+            IP = $ip.IP
+            Location = $ip.Location
+            }
+        }
+    }
+
+}
+
+
+$report | Export-Csv -Path $exportFile -NoClobber -NoTypeInformation
