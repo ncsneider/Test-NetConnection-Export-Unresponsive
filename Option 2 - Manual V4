@@ -32,7 +32,7 @@ Function Test-DeviceConnectivity
         [System.Windows.Forms.MessageBox]::Show('Select where to save the compiled CSV report.', 'Choose File') | Out-Null
         $dialogBoxType = New-Object System.Windows.Forms.SaveFileDialog
         $exportFile = SaveLoad-File
-        $report | Export-Csv -Path $exportFile -Force -NoClobber -NoTypeInformation
+        $report | Export-Csv -Path $exportFile -Force -NoTypeInformation
         Read-Host -Prompt "Processing finished, press Enter to exit"
 }
 
