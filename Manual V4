@@ -20,12 +20,11 @@ Function Test-DeviceConnectivity
         $pingTest = ping $ip.IP
         if($pingtest[2] -notlike "*TTL=*")
         {
-            $newRow = New-Object PsObject -Property @{
-                Hostname = $ip.Hostname
-                "IP Address" = $ip.IP
+            New-Object PsObject -Property @{
+                IP = $ip.IP
+                Device = $ip.Device
                 Location = $ip.Location
             }
-            Write-Output $newRow
         }
 
     }
