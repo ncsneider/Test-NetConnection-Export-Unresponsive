@@ -1,8 +1,8 @@
 # Path to CSV containing IP Address information
-$inputFile = "Enter Path Here.csv"
+$inputFile = "Database.csv"
 
 #Path to directory where CSV output files will be stored 
-$logPath = "Enter Path Here"
+$logPath = "Folder Path"
 
 $fullPath = "$logPath\$((Get-Date).Year)\$((Get-Culture).DateTimeFormat.GetMonthName((Get-Date).Month))\$(Get-Date -Format "dd")"#
 
@@ -15,18 +15,16 @@ if(!(Test-Path -Path $fullPath -PathType Container))
 }
 
 # Cycles through IP's in .CSV file and
-$report=foreach($ip in Import-Csv -Path $inputFile)
-{
-    $pingTest = ping $ip.IP
-    if($pingtest[2] -notlike "*TTL=*")
+$report = Import-Csv -Path $inputFile | ForEach-Object {
+
+    if(!(test-connection -computername $_.IP -quiet -count 1))
     {
         New-Object PsObject -Property @{
-            IP = $ip.IP
-            Device = $ip.Device
-            Location = $ip.Location
+            Hostname = $_.Hostname
+            "IP Address" = $_.IP
+            Location = $_.Location
         }
     }
-
 }
 
 $report | Export-Csv -Path "$fullPath\Unresponsive_IP_Addresses_$(Get-Date -Format "HH-mmtt").csv" -Force -NoTypeInformation
