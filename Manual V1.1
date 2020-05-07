@@ -15,15 +15,15 @@ Function Test-DeviceConnectivity
     $inputFile = SaveLoad-File
     $ipAddresses = Import-CSV $inputFile
 
-    $report=foreach($ip in $ipAddresses)
+   # Cycles through IP's in .CSV file and
+    $report = Import-Csv -Path $inputFile | ForEach-Object {
+
+    if(!(test-connection -computername $_.IP -quiet -count 1))
     {
-        $pingTest = ping $ip.IP
-        if($pingtest[2] -notlike "*TTL=*")
-        {
-            New-Object PsObject -Property @{
-                IP = $ip.IP
-                Device = $ip.Device
-                Location = $ip.Location
+        New-Object PsObject -Property @{
+            Hostname = $_.Hostname
+            "IP Address" = $_.IP
+            Location = $_.Location
             }
         }
 
