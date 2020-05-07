@@ -21,8 +21,8 @@ $report=foreach($ip in Import-Csv -Path $inputFile)
     if($pingtest[2] -notlike "*TTL=*")
     {
         New-Object PsObject -Property @{
-            Hostname = $ip.Hostname
-            "IP" = $ip.IP
+            IP = $ip.IP
+            Device = $ip.Device
             Location = $ip.Location
         }
     }
