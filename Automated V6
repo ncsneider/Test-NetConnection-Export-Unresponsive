@@ -1,0 +1,32 @@
+# Path to CSV containing IP Address information
+$inputFile = "Enter Path Here.csv"
+
+#Path to directory where CSV output files will be stored 
+$logPath = "Enter Path Here"
+
+$fullPath = "$logPath\$((Get-Date).Year)\$((Get-Culture).DateTimeFormat.GetMonthName((Get-Date).Month))\$(Get-Date -Format "dd")"#
+
+$ipAddresses = Import-Csv -Path $inputFile
+
+# Creates Year->Month->Day Folder structure
+if(!(Test-Path -Path $fullPath -PathType Container))
+{
+    New-Item -Path $fullPath -ItemType Directory -Force | Out-Null
+}
+
+# Cycles through IP's in .CSV file and
+$report=foreach($ip in Import-Csv -Path $inputFile)
+{
+    $pingTest = ping $ip.IP
+    if($pingtest[2] -notlike "*TTL=*")
+    {
+        New-Object PsObject -Property @{
+            Hostname = $ip.Hostname
+            "IP" = $ip.IP
+            Location = $ip.Location
+        }
+    }
+
+}
+
+$report | Export-Csv -Path "$fullPath\Unresponsive_IP_Addresses_$(Get-Date -Format "HH-mmtt").csv" -Force -NoTypeInformation
