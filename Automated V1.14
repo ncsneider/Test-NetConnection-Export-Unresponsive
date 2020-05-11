@@ -27,4 +27,6 @@ $report = Import-Csv -Path $inputFile | ForEach-Object {
     }
 }
 
+[System.Windows.Forms.MessageBox]::Show('Script has been completed.') | Out-Null
+
 $report | Export-Csv -Path "$fullPath\Unresponsive_IP_Addresses_$(Get-Date -Format "HH-mm-ss").csv" -Force -NoTypeInformation
