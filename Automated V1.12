@@ -1,8 +1,8 @@
 # Path to CSV containing IP Address information
-$inputFile = "Database.csv"
+$inputFile = "$ENV:USERPROFILE\Database.csv"
 
 #Path to directory where CSV output files will be stored 
-$logPath = "Folder Path"
+$logPath = "$ENV:USERPROFILE\Folder Path"
 
 $fullPath = "$logPath\$((Get-Date).Year)\$((Get-Culture).DateTimeFormat.GetMonthName((Get-Date).Month))\$(Get-Date -Format "dd")"#
 
