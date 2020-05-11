@@ -27,4 +27,4 @@ $report = Import-Csv -Path $inputFile | ForEach-Object {
     }
 }
 
-$report | Export-Csv -Path "$fullPath\Unresponsive_IP_Addresses_$(Get-Date -Format "HH-mmtt").csv" -Force -NoTypeInformation
+$report | Export-Csv -Path "$fullPath\Unresponsive_IP_Addresses_$(Get-Date -Format "HH-mm-ss").csv" -Force -NoTypeInformation
