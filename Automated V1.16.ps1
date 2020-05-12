@@ -28,13 +28,11 @@ Function Send-ReportEmail
 
 # Path to CSV containing IP Address information
 $inputFile = "$ENV:USERPROFILE\Database.csv"
-
+$date = Get-Date
 #Path to directory where CSV output files will be stored
 $logPath = "$ENV:USERPROFILE\Folder Path"
-
-$date = Get-Date
-
 $fullPath = "$logPath\$(($date).Year)\$((Get-Culture).DateTimeFormat.GetMonthName(($date).Month))\$(Get-Date -Format "dd")"
+$lastReport = (Get-ChildItem -Path $fullPath | Sort LastWriteTime | Select-Object -Last 1).FullName
 
 # Creates Year->Month->Day Folder structure
 if(!(Test-Path -Path $fullPath -PathType Container))
@@ -51,18 +49,25 @@ $report = Import-Csv -Path $inputFile | ForEach-Object {
             Hostname = $_.Hostname
             "IP Address" = $_.IP
             Location = $_.Location
+            
         }
     }
 }
 
 if($report -ne $null)
 {
+    #Imports the last CSV report for comparison
+    $lastReport = Import-Csv -Path $lastReport
+
     [System.Windows.Forms.MessageBox]::Show("Script successfully completed at $(Get-Date -Format "HH:mm:ss"). Some devices are offline or not responding.",'Device Connectivity','OK','Warning') | Out-Null
 
     #Exports the CSV to custom path
     $report | Export-Csv -Path "$fullPath\Unresponsive_IP_Addresses_$(Get-Date -Format "HH-mm-ss").csv" -Force -NoTypeInformation
 
-    Send-ReportEmail
+    # Compares the current report to the last report. If they are different the report will be sent using Send-ReportEmail
+    if((Compare-Object -ReferenceObject $report -DifferenceObject $lastReport) -ne $null) {
+        Send-ReportEmail
+    }
 }
 else
 {
