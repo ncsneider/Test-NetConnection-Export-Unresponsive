@@ -26,7 +26,7 @@ Function ConvertHtmlTableto-Array {
 Function Send-ReportEmail {
     [CmdLetBinding()]
     Param(
-        [Paramater(Mandatory=$true)]
+        [Parameter(Mandatory=$true)]
         [string]$From = "",
         
         [Parameter(Mandatory=$true)]
