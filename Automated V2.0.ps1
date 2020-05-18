@@ -2,15 +2,12 @@ Function ConvertHtmlTableto-Array {
     [CmdLetBinding()]
     Param(
         [Parameter(Position=0,Mandatory=$true,ValueFromPipeLine=$true)]
-        #[ValidateScript({if((Test-Path -Path $HtmlFile -PathType Leaf) -and ([IO.Path]::GetExtension($HtmlFile) -eq '.html')){$true}else{Throw "The specified file path or format is invalid."}})]
         [string]$HtmlFile
     )
-    $script:inputHtml = (Get-Content -Path "$HtmlFile")
+    $inputHtml = (Get-Content -Path "$HtmlFile")
     $htmlTableData = foreach($line in $inputHtml) {
-        if($line.StartsWith('<table><colgroup><col /><col /><col /><col /></colgroup><tr><th>') -or ($line.StartsWith('<tr class='))) {
-            if($line.StartsWith('<table><colgroup><col /><col /><col /><col /></colgroup><tr><th>')) {
-                $line.Replace('<table><colgroup><col /><col /><col /><col /></colgroup><tr><th>Hostname</th><th>IP Address</th><th>Location</th><th>Device Status</th>','').Replace('<td>','').Replace('</td>',';').Replace('offline','').Replace('online','').Replace('</tr></table>','') -split '</tr><tr class="">'
-            }
+        if($line.StartsWith('<table><colgroup><col /><col /><col /><col /></colgroup><tr><th>')) {
+            $line.Replace('<table><colgroup><col /><col /><col /><col /></colgroup><tr><th>Hostname</th><th>IP Address</th><th>Location</th><th>Device Status</th>','').Replace('<td>','').Replace('</td>',';').Replace('offline','').Replace('online','').Replace('</tr></table>','') -split '</tr><tr class="">'
         }
     }
     $htmlTableData | ForEach-Object {
@@ -26,20 +23,19 @@ Function ConvertHtmlTableto-Array {
 Function Send-ReportEmail {
     [CmdLetBinding()]
     Param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$false)]
         [string]$From = "",
         
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$false)]
         [string]$To = "",
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$false)]
         [string]$SmtpServer = "",
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$false)]
         [string]$Username = "",
 
-
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$false)]
         [string]$Password = ""
     ) 
     #Instantiate the .Net MailMessage class and define parameters for the Email
@@ -58,6 +54,64 @@ Function Send-ReportEmail {
     $emailSMTP.EnableSsl = $true
     $emailSMTP.Credentials = New-Object System.Net.NetworkCredential ($Username, $Password); #Enter username, password (usually email address and password)
     $emailSMTP.Send($emailMessage)
+}
+Function Set-FullPath{
+    [CmdLetBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [Switch]$Today,
+
+        [Parameter(Mandatory=$false)]
+        [Switch]$Yesterday,
+
+        [Parameter(Mandatory=$false)]
+        [string]$LogFolder = "$ENV:USERPROFILE\DeviceConnectivity"
+    )
+    if($Today) {
+        $date = Get-Date
+    }
+    elseif($Yesterday) {
+        $date = ((Get-Date).AddDays(-1))
+    }
+    $script:fullPath ='{0}\{1}\{2}\{3}'-f $LogFolder,$date.Year,((Get-Culture).DateTimeFormat.GetMonthName(($date).Month)),(($date).ToShortDateString() -split '/')[0] | Write-Output
+
+}
+Function Create-PreviousReport {
+    [CmdLetBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$PreviousReportPath = $fullPath
+    )
+    $script:previousReport = ((Get-ChildItem -Path $PreviousReportPath | Sort LastWriteTime | Select-Object -Last 1).FullName) | ConvertHtmlTableto-Array -ErrorAction SilentlyContinue
+}
+Function Create-CurrentReport {
+    $retry = $true
+    $script:currentReport = Import-CSV -Path "$ENV:USERPROFILE\Database.csv" | ForEach-Object {
+    $pingTest = Test-Connection -ComputerName $_.IP -Quiet -Count 1
+        [PsCustomObject] [ordered] @{
+            Hostname        = $_.Hostname
+            "IP Address"    = $_."IP"
+            Location        = $_.Location
+            "Device Status" = if(($pingTest) -eq $true) {"Online"} else {
+                Start-Sleep 10
+                if(($pingTest) -eq $false) {"Offline"}
+            }
+        }
+    }
+    #Cycles through the current report and assigns each table row a class depending on value of the last cell in that row
+    [xml]$html = $currentReport | ConvertTo-Html -Fragment
+    for($i=1;$i -le $html.table.tr.Count-1;$i++) {
+            $class = $html.CreateAttribute("class")
+            if(($html.table.tr[$i].td[-1] -as [string]) -like"*Offline") {
+                $class.Value= "offline"
+                $html.table.tr[$i].Attributes.Append($class) | Out-Null
+            }
+            elseif(($html.table.tr[$i].td[-1] -as [string]) -like"*Online") {
+                $class.Value = "online"
+                $html.table.tr[$i].Attributes.Append($class) | Out-Null
+            }
+    }
+    $script:body = $($html.InnerXml)
 }
 $exportHead = @"
     <Title>Device Connectivity Report</Title>
@@ -104,54 +158,22 @@ $emailHead = @"
     }
     </style>
 "@
-# Path to CSV containing IP Address information
-$inputFile = "$ENV:USERPROFILE\Database.csv"
-$date = Get-Date
-#Path to directory where CSV output files will be stored
-$logPath = "$ENV:USERPROFILE\DeviceConnectivity"
-$fullPath ='{0}\{1}\{2}\{3}'-f $logPath,$date.Year,((Get-Culture).DateTimeFormat.GetMonthName(($date).Month)),(Get-Date -Format "dd")
-
+Set-FullPath -Today
 # Creates Year->Month->Day Folder structure
-if(!(Test-Path -Path $fullPath -PathType Container))
-{
+if(!(Test-Path -Path $fullPath -PathType Container)) {
     New-Item -Path $fullPath -ItemType Directory -Force | Out-Null
 }
-
-$currentReport = Import-CSV -Path "$ENV:USERPROFILE\Database.csv" | ForEach-Object {
-    [PsCustomObject] [ordered] @{
-        Hostname        = $_.Hostname
-        "IP Address"    = $_."IP"
-        Location        = $_.Location
-        "Device Status" = if((Test-Connection -ComputerName $_.IP -Quiet -Count 1) -eq $true) {"Online"}else{"Offline"}
-    }
+Create-CurrentReport
+Create-PreviousReport
+if($previousReport -eq $null) {
+    Set-FullPath -Yesterday
+    Create-PreviousReport
 }
-
-#Imports the last report for comparison and parses it to a workable forma
-    $previousReport = ((Get-ChildItem -Path $fullPath | Sort LastWriteTime | Select-Object -Last 1).FullName) | ConvertHtmlTableto-Array
-
-#Cycles through the current report and applies conditional formatting
-[xml]$html = $currentReport | ConvertTo-Html -Fragment
-for($i=1;$i -le $html.table.tr.Count-1;$i++) {
-        $class = $html.CreateAttribute("class")
-        if(($html.table.tr[$i].td[-1] -as [string]) -like"*Offline") {
-            $class.Value= "offline"
-            $html.table.tr[$i].Attributes.Append($class) | Out-Null
-        }
-        elseif(($html.table.tr[$i].td[-1] -as [string]) -like"*Online") {
-            $class.Value = "online"
-            $html.table.tr[$i].Attributes.Append($class) | Out-Null
-        }
-}
-$body = $($html.InnerXml)
-
-ConvertTo-Html -Head $exportHead -Body $body | Out-File -FilePath "$fullPath\Unresponsive_IP_Addresses_$(Get-Date -Format "HH-mm-ss").html" -Force
-    
 # Compares the current report to the last report. If any differences are found, they will be sent by Email using Send-ReportEmail.
-if((Compare-Object -ReferenceObject $currentReport -DifferenceObject $previousReport -Property Hostname, "IP Address", Location, "Device Status") -ne $null)
-{
-    $Results = Compare-Object -ReferenceObject $currentReport -DifferenceObject $previousReport -Property Hostname, "IP Address", Location, "Device Status" 
-    $emailReport = Foreach($R in $Results | Where-Object{$_.SideIndicator -eq "<="})
-    {
+$Results = Compare-Object -ReferenceObject $currentReport -DifferenceObject $previousReport -Property Hostname, "IP Address", Location, "Device Status" 
+if(($Results) -ne $null) {
+    #$Results = Compare-Object -ReferenceObject $currentReport -DifferenceObject $previousReport -Property Hostname, "IP Address", Location, "Device Status" 
+    $emailReport = Foreach($R in $Results | Where-Object{$_.SideIndicator -eq "<="}) {
         [PsCustomObject] [Ordered] @{
                 Hostname = $R.Hostname
                 "IP Address" = $R."IP Address"
@@ -164,3 +186,5 @@ if((Compare-Object -ReferenceObject $currentReport -DifferenceObject $previousRe
         Send-ReportEmail
     }
 }
+Set-FullPath -Today
+ConvertTo-Html -Head $exportHead -Body $body | Out-File -FilePath "$fullPath\Unresponsive_IP_Addresses_$(Get-Date -Format "HH-mm-ss").html" -Force
