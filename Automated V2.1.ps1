@@ -73,7 +73,7 @@ Function Set-FullPath{
     elseif($Yesterday) {
         $date = ((Get-Date).AddDays(-1))
     }
-    $script:fullPath ='{0}\{1}\{2}\{3}'-f $LogFolder,$date.Year,((Get-Culture).DateTimeFormat.GetMonthName(($date).Month)),(($date).ToShortDateString() -split '/')[0]
+    $script:fullPath ='{0}\{1}\{2}\{3}'-f $LogFolder,$date.Year,((Get-Culture).DateTimeFormat.GetMonthName(($date).Month)),(($date).ToShortDateString() -split '/')[1]
 
 }
 Function Create-PreviousReport {
