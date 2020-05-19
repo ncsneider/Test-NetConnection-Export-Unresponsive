@@ -73,7 +73,7 @@ Function Set-FullPath{
     elseif($Yesterday) {
         $date = ((Get-Date).AddDays(-1))
     }
-    $script:fullPath ='{0}\{1}\{2}\{3}'-f $LogFolder,$date.Year,((Get-Culture).DateTimeFormat.GetMonthName(($date).Month)),(($date).ToShortDateString() -split '/')[0] | Write-Output
+    $script:fullPath ='{0}\{1}\{2}\{3}'-f $LogFolder,$date.Year,((Get-Culture).DateTimeFormat.GetMonthName(($date).Month)),(($date).ToShortDateString() -split '/')[0]
 
 }
 Function Create-PreviousReport {
@@ -94,7 +94,8 @@ Function Create-CurrentReport {
             Location        = $_.Location
             "Device Status" = if(($pingTest) -eq $true) {"Online"} else {
                 Start-Sleep 10
-                if(($pingTest) -eq $false) {"Offline"}
+                if((Test-Connection -ComputerName $_.IP -Quiet -Count 1) -eq $false) {"Offline"} else {"Online"}
+               
             }
         }
     }
